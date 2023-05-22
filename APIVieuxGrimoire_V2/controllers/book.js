@@ -1,9 +1,9 @@
-const Book = require('../models/book');
-const fs = require('fs');
+const Book = require('../models/book'); // Importation du modèle de données pour les livres
+const fs = require('fs'); // Importation du module 'fs' pour gérer les opérations de fichier
 
-const sharp = require('sharp');
+const sharp = require('sharp'); // Importation du module 'sharp' pour la manipulation d'images
 
-
+// Fonction pour créer un livre
 exports.createBook = async (req, res, next) => {
   try {
     const bookObject = JSON.parse(req.body.book);
@@ -26,10 +26,7 @@ exports.createBook = async (req, res, next) => {
   }
 };
 
-
-
-
-
+// Fonction pour récupérer un livre par son identifiant
 exports.getOneBook = (req, res, next) => {
   Book.findOne({
     _id: req.params.id,
@@ -44,7 +41,7 @@ exports.getOneBook = (req, res, next) => {
     });
 };
 
-// Fonction de modification d'un livre
+// Fonction pour modifier un livre
 exports.modifyBook = (req, res, next) => {
   const bookObject = req.file
     ? {
@@ -69,6 +66,7 @@ exports.modifyBook = (req, res, next) => {
     });
 };
 
+// Fonction pour supprimer un livre
 exports.deleteBook = (req, res, next) => {
   Book.findOne({ _id: req.params.id })
     .then(book => {
@@ -93,6 +91,7 @@ exports.deleteBook = (req, res, next) => {
     });
 };
 
+// Fonction pour récupérer tous les livres
 exports.getAllBooks = (req, res, next) => {
   Book.find()
     .then(books => {
@@ -107,47 +106,64 @@ exports.getAllBooks = (req, res, next) => {
 
 // Middleware pour obtenir les 3 livres avec la meilleure note moyenne
 exports.getBestRatedBooks = async (req, res) => {
-	try {
-		const books = await Book.find()
-			.sort({ averageRating: -1 })
-			.limit(3);
-		res.json(books);
-	} catch (error) {
-		console.error(error);
-		res.status(500).json({ message: 'Une erreur est survenue lors de la récupération des livres les mieux notés.' });
-	}
+  try {
+    const books = await Book.find()
+      .sort({ averageRating: -1 })
+      .limit(3);
+    res.json(books);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Une erreur est survenue lors de la récupération des livres les mieux notés.' });
+  }
 };
 
+// Fonction pour noter un livre
 exports.rateBook = async (req, res) => {
   try {
     const { id } = req.params;
-    const { userId, rating, grade } = req.body;
+    const { userId, rating } = req.body;
+    const grade = req.body.grade || 0;
+
+    console.log('ID du livre :', id);
+    console.log('Données de notation reçues :', { userId, rating, grade });
 
     // Vérifier si l'utilisateur a déjà noté ce livre
     const book = await Book.findById(id);
     if (book.ratings.some(r => r.userId === userId)) {
+      console.log("L'utilisateur a déjà noté ce livre.");
       return res.status(400).json({ message: "L'utilisateur a déjà noté ce livre." });
     }
 
+    // Vérifier si les propriétés sont présentes et ont les types appropriés
+    if (typeof userId !== 'string' || typeof rating !== 'number' || typeof grade !== 'number') {
+      console.log("Les données de notation sont invalides.");
+      return res.status(400).json({ message: "Les données de notation sont invalides." });
+    }
+
     // Ajouter la nouvelle notation à la liste des notations du livre
-    book.ratings.push({ userId, rating, grade });
+    book.ratings.push({ userId, grade });
 
     // Calculer la nouvelle note moyenne du livre
     const totalRatings = book.ratings.length;
-    const sumRatings = book.ratings.reduce((total, r) => total + r.rating, 0);
-    book.averageRating = sumRatings / totalRatings;
+    const sumRatings = book.ratings.reduce((total, r) => total + r.grade, 0);
+    book.averageRating = totalRatings > 0 ? sumRatings / totalRatings : 0;
 
     // Enregistrer les modifications du livre dans la base de données
     await book.save();
 
-    res.status(200).json({ message: 'La notation a été ajoutée avec succès.' });
+    // Récupérer les informations du livre mises à jour
+    const updatedBook = await Book.findById(id);
+
+    console.log('Informations du livre mises à jour :', updatedBook);
+
+    res.status(200).json({ message: 'La notation a été ajoutée avec succès.', book: updatedBook });
   } catch (error) {
     console.error('Erreur lors de la notation du livre :', error);
-    res.status(500).json({ message: "Une erreur s'est produite lors de la notation du livre." });
+    res.status(500).json({ message: 'Une erreur est survenue lors de la notation du livre.' });
   }
 };
 
-
+// Fonction pour récupérer un livre par son identifiant ou les livres les mieux notés
 exports.getBook = (req, res, next) => {
   const { id } = req.params;
 
