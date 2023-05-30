@@ -1,23 +1,22 @@
+// Ce fichier est un middleware d'authentification qui vérifie la validité 
+// d'un token d'authentification présent dans le header "Authorization" 
+// de la requête, décode ce token pour obtenir l'identifiant de l'utilisateur, 
+// et ajoute cet identifiant à l'objet "req.auth" avant de passer au middleware 
+// suivant ; en cas d'erreur, il renvoie une réponse d'erreur avec le statut 401.
+
 const jwt = require('jsonwebtoken');
 
 // Middleware d'authentification
 module.exports = (req, res, next) => {
   try {
-    // Extraire le token d'authentification du header Authorization de la requête
     const token = req.headers.authorization.split(' ')[1];
-    // Décoder le token pour obtenir les informations qu'il contient
     const decodedToken = jwt.verify(token, 'RANDOM_TOKEN_SECRET');
-    // Extraire l'identifiant de l'utilisateur du token décodé
     const userId = decodedToken.userId;
-    // Ajouter l'identifiant de l'utilisateur à l'objet req.auth
     req.auth = {
       userId: userId,
     };
-    // Passer au middleware suivant
     next();
   } catch (error) {
-    // En cas d'erreur lors de la vérification du token ou de l'extraction de l'identifiant
     res.status(401).json({ error });
   }
 };
-

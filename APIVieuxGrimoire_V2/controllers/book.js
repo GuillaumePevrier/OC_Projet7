@@ -1,7 +1,6 @@
-const Book = require('../models/book'); // Importation du modèle de données pour les livres
-const fs = require('fs'); // Importation du module 'fs' pour gérer les opérations de fichier
-
-const sharp = require('sharp'); // Importation du module 'sharp' pour la manipulation d'images
+const Book = require('../models/book'); 
+const fs = require('fs'); 
+const sharp = require('sharp'); 
 
 // Fonction pour créer un livre
 exports.createBook = async (req, res, next) => {
@@ -10,11 +9,11 @@ exports.createBook = async (req, res, next) => {
     delete bookObject._id;
     delete bookObject._userId;
 
-    const webpFileName = req.file.filename.replace(/\.[^.]+$/, '.webp'); // Obtenir le nom de fichier WebP
+    const webpFileName = req.file.filename.replace(/\.[^.]+$/, '.webp');
     const book = new Book({
       ...bookObject,
       userId: req.auth.userId,
-      imageUrl: `${req.protocol}://${req.get('host')}/images/${webpFileName}`, // Utiliser le nom de fichier WebP pour le lien
+      imageUrl: `${req.protocol}://${req.get('host')}/images/${webpFileName}`,
     });
 
     await book.save();
@@ -122,36 +121,33 @@ exports.rateBook = async (req, res) => {
   try {
     const { id } = req.params;
     const { userId, rating } = req.body;
-    const grade = req.body.grade || 0;
 
     console.log('ID du livre :', id);
-    console.log('Données de notation reçues :', { userId, rating, grade });
+    console.log('Données de notation reçues :', { userId, rating });
 
-    // Vérifier si l'utilisateur a déjà noté ce livre
     const book = await Book.findById(id);
     if (book.ratings.some(r => r.userId === userId)) {
       console.log("L'utilisateur a déjà noté ce livre.");
       return res.status(400).json({ message: "L'utilisateur a déjà noté ce livre." });
     }
 
-    // Vérifier si les propriétés sont présentes et ont les types appropriés
-    if (typeof userId !== 'string' || typeof rating !== 'number' || typeof grade !== 'number') {
+    if (typeof userId !== 'string' || typeof rating !== 'number') {
       console.log("Les données de notation sont invalides.");
       return res.status(400).json({ message: "Les données de notation sont invalides." });
     }
 
-    // Ajouter la nouvelle notation à la liste des notations du livre
-    book.ratings.push({ userId, grade });
+    book.ratings.push({ userId, grade: rating });
 
-    // Calculer la nouvelle note moyenne du livre
     const totalRatings = book.ratings.length;
     const sumRatings = book.ratings.reduce((total, r) => total + r.grade, 0);
-    book.averageRating = totalRatings > 0 ? sumRatings / totalRatings : 0;
+    const minRating = 1; 
+    const maxRating = 5; 
+    const averageRating = totalRatings > 0 ? Math.min(Math.max(Math.round((sumRatings / totalRatings)), minRating), maxRating) : 0;
 
-    // Enregistrer les modifications du livre dans la base de données
+    book.averageRating = averageRating;
+
     await book.save();
 
-    // Récupérer les informations du livre mises à jour
     const updatedBook = await Book.findById(id);
 
     console.log('Informations du livre mises à jour :', updatedBook);
@@ -167,12 +163,9 @@ exports.rateBook = async (req, res) => {
 exports.getBook = (req, res, next) => {
   const { id } = req.params;
 
-  // Vérifier si l'identifiant est "bestrating"
   if (id === "bestrating") {
-    // Exécuter la logique pour récupérer les livres les mieux notés
     getBestRatedBooks(req, res, next);
   } else {
-    // Exécuter la logique pour récupérer un livre par son identifiant
     getOneBook(req, res, next);
   }
 };

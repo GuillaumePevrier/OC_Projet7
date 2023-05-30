@@ -1,50 +1,51 @@
-const http = require('http'); // Importation du module 'http' pour créer un serveur HTTP
-const app = require('./app'); // Importation de l'application
+// Ce fichier joue le rôle de créer et configurer un serveur HTTP en 
+// utilisant le module 'http', en normalisant le port, en gérant les erreurs 
+// liées à l'écoute du serveur et en démarrant le serveur pour écouter les 
+// requêtes entrantes sur le port spécifié.
 
-// Fonction pour normaliser le port
+const http = require('http'); 
+const app = require('./app'); 
 const normalizePort = val => {
   const port = parseInt(val, 10);
 
   if (isNaN(port)) {
-    return val; // Retourne la valeur telle quelle si elle n'est pas un nombre
+    return val; 
   }
   if (port >= 0) {
-    return port; // Retourne le numéro de port si la valeur est un nombre positif
+    return port; 
   }
-  return false; // Retourne false si la valeur n'est pas valide
+  return false; 
 };
 
-const port = normalizePort(process.env.PORT || '3000'); // Normalisation du port
-app.set('port', port); // Définition du port de l'application
+const port = normalizePort(process.env.PORT || '3000'); 
+app.set('port', port); 
 
-// Fonction de gestion des erreurs
 const errorHandler = error => {
   if (error.syscall !== 'listen') {
-    throw error; // Lève une erreur si l'erreur n'est pas liée à l'écoute du serveur
+    throw error; 
   }
-  const address = server.address(); // Récupération de l'adresse du serveur
-  const bind = typeof address === 'string' ? 'pipe ' + address : 'port: ' + port; // Formatage de l'adresse
+  const address = server.address(); 
+  const bind = typeof address === 'string' ? 'pipe ' + address : 'port: ' + port; 
   switch (error.code) {
     case 'EACCES':
-      console.error(bind + ' requires elevated privileges.'); // Affiche un message d'erreur si l'accès est refusé
-      process.exit(1); // Arrête le processus avec le code d'erreur 1
+      console.error(bind + ' requires elevated privileges.'); 
+      process.exit(1); 
       break;
     case 'EADDRINUSE':
-      console.error(bind + ' is already in use.'); // Affiche un message d'erreur si le port est déjà utilisé
-      process.exit(1); // Arrête le processus avec le code d'erreur 1
+      console.error(bind + ' is already in use.'); 
+      process.exit(1); 
       break;
     default:
-      throw error; // Lève une erreur pour les autres cas d'erreur
+      throw error; 
   }
 };
 
-const server = http.createServer(app); // Création du serveur HTTP avec l'application
-
-server.on('error', errorHandler); // Gestion des erreurs du serveur
+const server = http.createServer(app); 
+server.on('error', errorHandler); 
 server.on('listening', () => {
-  const address = server.address(); // Récupération de l'adresse du serveur
-  const bind = typeof address === 'string' ? 'pipe ' + address : 'port ' + port; // Formatage de l'adresse
-  console.log('Listening on ' + bind); // Affiche un message indiquant que le serveur écoute sur le port spécifié
+  const address = server.address(); 
+  const bind = typeof address === 'string' ? 'pipe ' + address : 'port ' + port; 
+  console.log('Listening on ' + bind);
 });
 
-server.listen(port); // Démarrage du serveur et écoute des requêtes entrantes
+server.listen(port); 
