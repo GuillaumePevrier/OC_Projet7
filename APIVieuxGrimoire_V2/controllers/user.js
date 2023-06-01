@@ -1,8 +1,38 @@
 const bcrypt = require('bcrypt');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const emailValidator = require('email-validator');
+const passwordValidator = require('password-validator');
+const crypto = require('crypto');
+require('dotenv').config();
+
+// Generate a complex JWT secret key
+const generateJwtSecret = () => {
+  return crypto.randomBytes(64).toString('hex');
+};
+const jwtSecret = process.env.JWT_SECRET || generateJwtSecret();
+
 
 exports.signup = (req, res, next) => {
+  if (!emailValidator.validate(req.body.email)) {
+    return res.status(400).json({ error: 'Adresse e-mail invalide !' });
+  }
+
+  const schema = new passwordValidator();
+  schema
+    .is().min(8)
+    .is().max(100)
+    .has().uppercase()
+    .has().lowercase()
+    .has().digits(1)
+    .has().not().spaces();
+
+  if (!schema.validate(req.body.password)) {
+    return res.status(400).json({
+      error: 'Le mot de passe doit comporter au moins 8 caractères, une lettre majuscule, une lettre minuscule, un chiffre et ne doit pas contenir d\'espaces !',
+    });
+  }
+
   bcrypt.hash(req.body.password, 10)
     .then(hash => {
       const user = new User({
@@ -27,7 +57,7 @@ exports.login = (req, res, next) => {
           if (!valid) {
             return res.status(401).json({ error: 'Mot de passe incorrect !' });
           }
-          const token = jwt.sign({ userId: user._id }, 'RANDOM_TOKEN_SECRET', { expiresIn: '24h' });
+          const token = jwt.sign({ userId: user._id }, jwtSecret, { expiresIn: '24h' });
           res.status(200).json({
             userId: user._id,
             token: token,
